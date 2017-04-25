@@ -3,22 +3,27 @@ Happiness_Data=data.table(read.csv('2016.csv'))
 colnames(Happiness_Data)<-gsub('.','',colnames(Happiness_Data),fixed=T)
 
 ###Data exploration
-library(reshape2)
-dataPlot<- melt(Happiness_Data,id.vars='Country', measure.vars=colnames(Happiness_Data)[c(4,7:13)])
+
 require(ggplot2)
 require(GGally)
 ggplot(dataPlot,aes(y=value,x=variable))+geom_violin()
-ggpairs(Happiness_Data[,c(4,7:13),with=F])
+ggpairs(Happiness_Data[,c(4,7:13),with=F],lower = list(continuous='smooth'))
 
 require('rworldmap')
 map.world <- map_data(map="world")
-
+library(reshape2)
+dataPlot<- melt(Happiness_Data,id.vars='Country', measure.vars=colnames(Happiness_Data)[c(4,7:13)])
 #Add the data you want to map countries by to map.world
 #In this example, I add lengths of country names plus some offset
-dataMap=data.table(merge(map.world,Happiness_Data,by.x='region',by.y='Country',all.x=T))
+dataPlot[Country=='United States',Country:='USA']
+dataPlot[Country=='United Kingdoms',Country:='UK']
+
+dataPlot[,value:=value/max(value),by=variable]
+dataMap=data.table(merge(map.world,dataPlot,by.x='region',by.y='Country',all.x=T))
+dataMap[is.na(variable),variable=unique(variable)]
 dataMap=dataMap[order(order)]
 gg <- ggplot()
-gg <- gg + geom_map(data=dataMap, map=dataMap, aes(map_id=region,x=long,y=lat, fill=HappinessScore))
+gg <- gg + geom_map(data=dataMap, map=dataMap, aes(map_id=region,x=long,y=lat, fill=value))+facet_wrap(~variable,scale='free')
 gg <- gg + scale_fill_gradient(low = "navy", high = "lightblue")
 gg <- gg + coord_equal()
 gg
